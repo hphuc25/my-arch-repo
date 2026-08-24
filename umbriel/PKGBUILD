@@ -1,4 +1,4 @@
-# Maintainer: Phuc Hoang <https://github.com/hphuc25>
+# Maintainer: HPhuc <https://github.com/hphuc25>
 # Umbriel — Wayland compositor on wlroots + SceneFX (patched fork)
 # Local package for my-arch-repo: built by build-release.yml (cachyos-v3)
 # and published to the pacman repo at releases/download/repository (db: nanoka).
@@ -51,9 +51,9 @@ pkgver() {
     set -o pipefail
     git describe --tags --long 2>/dev/null | sed 's/^v//; s/\([^-]*-g\)/r\1/; s/-/./g'
   ) || printf '%s.r%s.g%s' \
-      "$(sed -En "s/^ *version: *'([^']+)'.*/\1/p" meson.build | head -n1)" \
-      "$(git rev-list --count HEAD)" \
-      "$(git rev-parse --short=7 HEAD)"
+    "$(sed -En "s/^ *version: *'([^']+)'.*/\1/p" meson.build | head -n1)" \
+    "$(git rev-list --count HEAD)" \
+    "$(git rev-parse --short=7 HEAD)"
 }
 
 prepare() {
