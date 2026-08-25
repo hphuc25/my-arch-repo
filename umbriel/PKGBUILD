@@ -1,15 +1,15 @@
 # Maintainer: HPhuc <https://github.com/hphuc25>
 # Umbriel — Wayland compositor on wlroots + SceneFX (patched fork)
 # Local package for my-arch-repo: built by build-release.yml (cachyos-v3)
-# and published to the pacman repo at releases/download/repository (db: nanoka).
-# Install with: pacman -S umbriel  (after adding [nanoka] to pacman.conf)
+# and published to the pacman repo at releases/download/repository (db: arcox).
+# Install with: pacman -S umbriel  (after adding [arcox] to pacman.conf)
 
 pkgname=umbriel
 pkgver=0.1.0
 pkgrel=2
 pkgdesc='A Wayland compositor built on wlroots and SceneFX'
 arch=('x86_64')
-url='https://github.com/hphuc25/umbriel'
+url='https://github.com/noctalia-dev/umbriel'
 license=('MIT')
 depends=(
   'cairo'
@@ -42,7 +42,7 @@ optdepends=(
   'xdg-desktop-portal-umbriel: screencast and screenshot portals'
   'xwayland-satellite: X11 application support'
 )
-source=("git+https://github.com/hphuc25/umbriel.git")
+source=("git+https://github.com/noctalia-dev/umbriel.git")
 sha256sums=('SKIP')
 
 pkgver() {
