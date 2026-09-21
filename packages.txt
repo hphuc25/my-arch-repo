@@ -1,4 +1,7 @@
 #####
+# AUR packages
+opennow
+opennow-appimage
 # Local packages
 local:umbriel
-opennow
+
