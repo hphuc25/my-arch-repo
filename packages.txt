@@ -2,6 +2,7 @@
 # AUR packages
 opennow
 opennow-appimage
+netease-cloud-music
 # Local packages
 local:umbriel
 
