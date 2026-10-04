@@ -1,8 +1,8 @@
 #####
 # AUR packages
 opennow
-opennow-appimage
 netease-cloud-music
+netease-cloud-music-gtk4
 # Local packages
-local:umbriel
+
 
