@@ -1,1 +1,6 @@
 NOTE.md
+
+# makepkg / paru build artifacts
+src/
+pkg/
+*.pkg.tar.*

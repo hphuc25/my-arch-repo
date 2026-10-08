@@ -4,5 +4,7 @@ opennow
 netease-cloud-music
 netease-cloud-music-gtk4
 # Local packages
+local:antseed
+local:antseed-desktop
 
 

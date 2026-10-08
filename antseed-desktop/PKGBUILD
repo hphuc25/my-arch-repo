@@ -1,0 +1,67 @@
+# Maintainer: hphuc25 <https://github.com/hphuc25/my-arch-repo>
+#
+# Upstream ships the desktop GUI as an AppImage (and a .deb) on GitHub
+# Releases: https://github.com/Antseed/antseed/releases
+# This package repackages the upstream AppImage as-is.
+# The CLI (`antseed` package) is built from source in ../antseed.
+
+pkgname=antseed-desktop
+pkgver=0.2.50
+pkgrel=1
+pkgdesc="Antseed AI VPN desktop app - Electron GUI for the AntSeed P2P AI network"
+arch=('x86_64')
+url="https://antseed.com"
+license=('GPL-3.0-only')
+# Same runtime deps as upstream's .deb (electron-builder default set),
+# plus FUSE to mount the AppImage itself.
+depends=(
+	'gtk3'
+	'libnotify'
+	'nss'
+	'libxss'
+	'libxtst'
+	'xdg-utils'
+	'at-spi2-core'
+	'util-linux-libs'
+	'libsecret'
+	'fuse2'
+)
+optdepends=('libayatana-appindicator: system tray icon')
+options=('!strip')
+source=(
+	"Antseed-AI-VPN-${pkgver}-x86_64.AppImage::https://github.com/Antseed/antseed/releases/download/v${pkgver}/Antseed-AI-VPN-${pkgver}-x86_64.AppImage"
+	"LICENSE::https://raw.githubusercontent.com/Antseed/antseed/v${pkgver}/LICENSE"
+)
+sha256sums=('954a8f0fb5c3c215b49c34f04d1865e6c97260d7f1efd7eb84f7ae7ff7366154'
+            '3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986')
+
+build() {
+	cd "$srcdir"
+	chmod +x "Antseed-AI-VPN-${pkgver}-x86_64.AppImage"
+	# no FUSE required: the runtime unpacks its own squashfs
+	./"Antseed-AI-VPN-${pkgver}-x86_64.AppImage" --appimage-extract
+}
+
+package() {
+	cd "$srcdir"
+
+	install -Dm755 "Antseed-AI-VPN-${pkgver}-x86_64.AppImage" \
+		"$pkgdir/opt/Antseed/Antseed-AI-VPN.AppImage"
+
+	install -d "$pkgdir/usr/bin"
+	ln -s "/opt/Antseed/Antseed-AI-VPN.AppImage" "$pkgdir/usr/bin/antseed-desktop"
+
+	# desktop entry shipped inside the AppImage (Exec=AppRun → our wrapper)
+	install -Dm644 squashfs-root/antseed-ai-vpn.desktop \
+		"$pkgdir/usr/share/applications/antseed-ai-vpn.desktop"
+	sed -i \
+		-e 's|^Exec=.*|Exec=/usr/bin/antseed-desktop --no-sandbox %U|' \
+		-e 's|^TryExec=.*|TryExec=/usr/bin/antseed-desktop|' \
+		"$pkgdir/usr/share/applications/antseed-ai-vpn.desktop"
+
+	# icon (1024x1024, referenced by Icon=antseed-ai-vpn)
+	install -Dm644 squashfs-root/usr/share/icons/hicolor/1024x1024/apps/antseed-ai-vpn.png \
+		"$pkgdir/usr/share/icons/hicolor/1024x1024/apps/antseed-ai-vpn.png"
+
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/${pkgname}/LICENSE"
+}
