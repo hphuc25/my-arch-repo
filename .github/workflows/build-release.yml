@@ -123,6 +123,67 @@ jobs:
           set -uo pipefail
           mkdir -p output /tmp/repo-files /tmp/repo-db
 
+          # A local package may commit its PKGBUILD as a @…@ template: that
+          # copy is not buildable, the values come from the upstream release.
+          # Detect the placeholders and render from the repo named by url=,
+          # which also keeps the template and .install in sync with upstream.
+          if grep -qE '@[A-Z0-9_]+@' "$PKG/PKGBUILD"; then
+            UPSTREAM=$(sed -n 's/^url="\([^"]*\)".*/\1/p' "$PKG/PKGBUILD" | head -n1)
+            case "$UPSTREAM" in
+              https://github.com/*/*) ;;
+              *)
+                echo "No upstream GitHub repo in url= of $PKG/PKGBUILD (got '$UPSTREAM')"
+                echo "$PKG" > output/status-failed-$PKG.txt
+                exit 0 ;;
+            esac
+
+            WORK=$(mktemp -d)
+            echo "Rendering $PKG from $UPSTREAM"
+            if ! git clone --depth 1 "$UPSTREAM" "$WORK/upstream" >/dev/null 2>&1; then
+              echo "Failed to clone $UPSTREAM"
+              echo "$PKG" > output/status-failed-$PKG.txt
+              exit 0
+            fi
+
+            TAG=$(gh release view --repo "$UPSTREAM" --json tagName -q .tagName 2>/dev/null || true)
+            if [[ -z "$TAG" ]]; then
+              echo "Failed to read the latest release tag of $UPSTREAM"
+              echo "$PKG" > output/status-failed-$PKG.txt
+              exit 0
+            fi
+            VER=${TAG#v}
+            echo "Upstream latest release: $TAG"
+
+            if ! gh release download "$TAG" --repo "$UPSTREAM" --dir "$WORK" --pattern '*linux-amd64.tar.gz'; then
+              echo "Failed to download the tarball of $TAG"
+              echo "$PKG" > output/status-failed-$PKG.txt
+              exit 0
+            fi
+            TARBALL=$(ls "$WORK"/*linux-amd64.tar.gz | head -n1)
+
+            # Same path render.sh lives at in the upstream repository.
+            AUR="$WORK/upstream/build/linux/aur"
+            if [[ ! -f "$AUR/render.sh" ]]; then
+              echo "$UPSTREAM has no build/linux/aur/render.sh"
+              echo "$PKG" > output/status-failed-$PKG.txt
+              exit 0
+            fi
+            if ! sh "$AUR/render.sh" "$VER" "$TARBALL" --local > "$WORK/PKGBUILD"; then
+              echo "render.sh failed for $PKG $VER"
+              echo "$PKG" > output/status-failed-$PKG.txt
+              exit 0
+            fi
+
+            mv "$WORK/PKGBUILD" "$PKG/PKGBUILD"
+            cp "$AUR"/*.install "$PKG/" 2>/dev/null || true
+            mv "$TARBALL" "$PKG/"
+            rm -rf "$WORK"
+            # These files are created after the workspace was handed to the
+            # build user, so makepkg would see root-owned sources.
+            chown -R builder:builder "$PKG"
+            echo "Rendered $PKG $VER from $UPSTREAM"
+          fi
+
           echo "Fetching database metadata..."
           if gh release download "$RELEASE_TAG" --repo "${{ github.repository }}" --dir /tmp/repo-db --pattern "${REPO_DB_NAME}.files.tar.gz" 2>/dev/null; then
             tar -xzf "/tmp/repo-db/${REPO_DB_NAME}.files.tar.gz" -C /tmp/repo-files 2>/dev/null || true
