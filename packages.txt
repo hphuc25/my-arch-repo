@@ -2,6 +2,7 @@
 # AUR packages
 opennow
 netease-cloud-music
+deepseek-harness-desktop
 netease-cloud-music-gtk4
 # Local packages
 local:antseed-desktop
