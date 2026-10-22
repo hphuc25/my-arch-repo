@@ -1,0 +1,64 @@
+# Maintainer: Harry Nguyen <duchanhstyle@gmail.com>
+pkgname=radmin-vpn-linux
+pkgver=1.1.0
+pkgrel=1
+pkgdesc="Run Radmin VPN on Linux via Wine, with a custom NDIS miniport replacement and TAP bridge"
+arch=('x86_64')
+url="https://github.com/baptisterajaut/radmin-vpn-linux"
+license=('GPL-3.0-only')
+depends=('curl' 'gtk4' 'iproute2' 'kmod' 'python' 'sudo' 'wine')
+makedepends=('mingw-w64-gcc' 'upx')
+optdepends=(
+	'zenity: graphical sudo prompt when launched from the desktop menu'
+	'xorg-server-xvfb: headless GUI for run_datacenter.sh'
+	'x11vnc: headless GUI for run_datacenter.sh'
+	'python-websockify: headless GUI for run_datacenter.sh'
+	'novnc: headless GUI for run_datacenter.sh'
+)
+options=('!strip' '!debug')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/baptisterajaut/radmin-vpn-linux/archive/refs/tags/v$pkgver.tar.gz"
+	'radmin-vpn')
+sha256sums=('255cc196467669c33ff1d10fec20a87d5e53891710bc4d32f588dea94427d6be'
+	'3fb5d045d202aec3e7519d70f24785ad8080a26a8b4670b361e8ad6451b4d0a7')
+
+build() {
+	cd "$pkgname-$pkgver"
+	make
+}
+
+package() {
+	cd "$pkgname-$pkgver"
+
+	# Native launcher: keeps user state in XDG_DATA_HOME instead of /usr/lib.
+	install -Dm755 "$srcdir/radmin-vpn" "$pkgdir/usr/bin/radmin-vpn"
+
+	# Upstream scripts expect to live next to lib.sh, patch_qwindows_font.py and build/.
+	install -Dm755 run.sh "$pkgdir/usr/lib/radmin-vpn/run.sh"
+	install -Dm755 run_vps.sh "$pkgdir/usr/lib/radmin-vpn/run_vps.sh"
+	install -Dm755 run_datacenter.sh "$pkgdir/usr/lib/radmin-vpn/run_datacenter.sh"
+	install -Dm755 health_check.sh "$pkgdir/usr/lib/radmin-vpn/health_check.sh"
+	install -Dm644 lib.sh "$pkgdir/usr/lib/radmin-vpn/lib.sh"
+	install -Dm644 patch_qwindows_font.py "$pkgdir/usr/lib/radmin-vpn/patch_qwindows_font.py"
+	install -Dm755 contrib/run-in-netns.sh "$pkgdir/usr/lib/radmin-vpn/contrib/run-in-netns.sh"
+
+	# Headless launchers normally hardcode "$DIR/wineprefix"; honor the wrapper's env.
+	sed -i 's|^export WINEPREFIX="\$DIR/wineprefix"$|export WINEPREFIX="${WINEPREFIX:-$DIR/wineprefix}"|' \
+		"$pkgdir/usr/lib/radmin-vpn/run_vps.sh" \
+		"$pkgdir/usr/lib/radmin-vpn/run_datacenter.sh"
+	sed -i 's|^BUILD_DIR="\$DIR/build"$|BUILD_DIR="${BUILD_DIR:-$DIR/build}"|' \
+		"$pkgdir/usr/lib/radmin-vpn/run_vps.sh" \
+		"$pkgdir/usr/lib/radmin-vpn/run_datacenter.sh"
+
+	# Cross-compiled PE binaries, native helpers and LD_PRELOAD shims.
+	install -d "$pkgdir/usr/lib/radmin-vpn/build"
+	install -m755 build/* "$pkgdir/usr/lib/radmin-vpn/build/"
+
+	# Desktop entry (Exec=AppRun is for the AppImage).
+	sed 's|^Exec=AppRun$|Exec=radmin-vpn|' packaging/radmin-vpn.desktop \
+		> "$pkgdir/radmin-vpn.desktop"
+	install -Dm644 "$pkgdir/radmin-vpn.desktop" "$pkgdir/usr/share/applications/radmin-vpn.desktop"
+	rm -f "$pkgdir/radmin-vpn.desktop"
+	install -Dm644 packaging/radmin-vpn.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/radmin-vpn.svg"
+
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

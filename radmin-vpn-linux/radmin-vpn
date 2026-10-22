@@ -1,0 +1,14 @@
+#!/bin/bash
+# System launcher for radmin-vpn-linux.
+# Keeps the wineprefix and downloaded installer in the user's data dir instead of
+# /usr/lib, then hands over to the upstream run.sh.
+set -euo pipefail
+
+DATA_DIR="${RADMIN_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/radmin-vpn-linux}"
+mkdir -p "$DATA_DIR"
+
+export RADMIN_DATA_DIR="$DATA_DIR"
+export WINEPREFIX="${WINEPREFIX:-$DATA_DIR/wineprefix}"
+export BUILD_DIR="${BUILD_DIR:-/usr/lib/radmin-vpn/build}"
+
+exec /usr/lib/radmin-vpn/run.sh "$@"
