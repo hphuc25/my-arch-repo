@@ -4,6 +4,11 @@
 # pkgver() derives the version from meson.build plus the Git commit count, which
 # lets the release workflow rebuild only when upstream actually changes.
 #
+# Upstream's voice support needs libdave and mlspp, which are not packaged in
+# Arch/AUR. Build the exact revisions pinned by upstream's Nix recipe here and
+# ship the resulting shared libraries with the client; see
+# scripts/build-voice-dependencies.sh in the upstream source.
+#
 # Only the `cressida` target is compiled: the upstream test suite is large and
 # the workflow already builds with --nocheck.
 
@@ -14,25 +19,30 @@ pkgrel=1
 pkgdesc='Native Discord desktop client for Linux and Wayland'
 arch=('x86_64')
 url='https://github.com/Ly-sec/Cressida'
-license=('MIT' 'Apache-2.0')
+license=('MIT' 'Apache-2.0' 'BSD-2-Clause')
 depends=(
   'cairo'
   'curl'
   'ffmpeg'
   'fontconfig'
   'freetype2'
+  'gcc-libs'
   'glib2'
   'harfbuzz'
   'hicolor-icon-theme'
   'libglvnd'
   'libjxl'
+  'libpulse'
   'libsecret'
+  'libsodium'
   'libwebp'
   'libxkbcommon'
   'librsvg'
   'md4c'
   'mpv'
   'nlohmann-json'
+  'openssl'
+  'opus'
   'pango'
   'rlottie'
   'shared-mime-info'
@@ -42,6 +52,7 @@ depends=(
   'zstd'
 )
 makedepends=(
+  'cmake'
   'git'
   'meson'
   'ninja'
@@ -59,8 +70,24 @@ optdepends=(
   'xdg-desktop-portal-gtk: portal backend for GTK desktops'
   'xdg-desktop-portal-kde: portal backend for KDE Plasma'
 )
-source=("$_pkgname::git+${url}.git")
-sha256sums=('SKIP')
+
+# Revisions pinned by upstream's nix/libdave.nix and
+# scripts/build-voice-dependencies.sh. Keep both in sync with upstream.
+_mlsrev=1cc50a124a3bc4e143a787ec934280dc70c1034d
+_davev=6396c90aedbb9a6ee117ea9ce1ce9832af6a3375
+_mlsdir="cressida-mlspp-$_mlsrev"
+_davedir="cressida-libdave-$_davev"
+
+source=(
+  "$_pkgname::git+${url}.git"
+  "$_mlsdir.tar.gz::https://codeload.github.com/cisco/mlspp/tar.gz/$_mlsrev"
+  "$_davedir.tar.gz::https://codeload.github.com/discord/libdave/tar.gz/$_davev"
+)
+sha256sums=(
+  'SKIP'
+  '7a9d6318627e548903bc65c3dc5a4de4a90290983efea9a49af8561ed3f999f5'
+  '37784dd0c1476738426f0968a6420dc8590e4b40cb8aae42e36df3c663e18cc5'
+)
 
 pkgver() {
   cd "$_pkgname"
@@ -71,12 +98,77 @@ pkgver() {
   printf '%s.r%s.g%s' "${ver:-0}" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
+prepare() {
+  # Same adjustments as upstream's pinned build: C++23 is required by the
+  # current sources, and the MLS data-store/vector subtrees are not needed.
+  sed -i 's/set(CMAKE_CXX_STANDARD 17)/set(CMAKE_CXX_STANDARD 23)/' \
+    "$srcdir/$_mlsdir/CMakeLists.txt" \
+    "$srcdir/$_davedir/cpp/CMakeLists.txt"
+  sed -i '/add_subdirectory(mls_ds)/d; /add_subdirectory(mls_vectors)/d' \
+    "$srcdir/$_mlsdir/lib/CMakeLists.txt"
+}
+
 build() {
+  local voiceprefix="$srcdir/voice-prefix"
+
+  # Build the voice dependencies into a private prefix first. They are bundled
+  # with the client because Arch/AUR have no libdave or mlspp packages.
+  cmake -S "$srcdir/$_mlsdir" -B "$srcdir/build-mlspp" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$voiceprefix" \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DBUILD_SHARED_LIBS=ON \
+    -DTESTING=OFF \
+    -DMLS_CXX_NAMESPACE=mlspp \
+    -DDISABLE_GREASE=ON
+  cmake --build "$srcdir/build-mlspp" --parallel
+  cmake --install "$srcdir/build-mlspp"
+
+  cmake -S "$srcdir/$_davedir/cpp" -B "$srcdir/build-libdave" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$voiceprefix" \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_PREFIX_PATH="$voiceprefix" \
+    -DBUILD_SHARED_LIBS=ON \
+    -DPERSISTENT_KEYS=OFF \
+    -DTESTING=OFF
+  cmake --build "$srcdir/build-libdave" --parallel
+  cmake --install "$srcdir/build-libdave"
+
+  # Build-time only metadata: do not embed the build prefix in an rpath.
+  # mlspp is only used by upstream's encryption tests, but Meson resolves the
+  # dependency while configuring all targets, so provide it as well.
+  install -d "$voiceprefix/lib/pkgconfig"
+  cat > "$voiceprefix/lib/pkgconfig/libdave.pc" <<EOF
+prefix=$voiceprefix
+libdir=$voiceprefix/lib
+includedir=$voiceprefix/include
+
+Name: libdave
+Description: Audio frame encryption and MLS sessions
+Version: 1.0
+Libs: -L\${libdir} -ldave -lmlspp -lhpke -ltls_syntax -lbytes
+Cflags: -I\${includedir}
+EOF
+
+  cat > "$voiceprefix/lib/pkgconfig/mlspp.pc" <<EOF
+prefix=$voiceprefix
+libdir=$voiceprefix/lib
+includedir=$voiceprefix/include/mlspp
+
+Name: mlspp
+Description: MLS group protocol
+Version: 0.1
+Libs: -L\${libdir} -lmlspp -lhpke -ltls_syntax -lbytes
+Cflags: -I\${includedir}
+EOF
+
   cd "$_pkgname"
 
   # arch-meson picks up the repository's x86-64-v3 CFLAGS/LDFLAGS and LTO.
   arch-meson build \
     -Dcpp_std=c++23 \
+    -Dpkg_config_path="$voiceprefix/lib/pkgconfig" \
     -Demoji_font=/usr/share/fonts/noto/NotoColorEmoji.ttf
 
   # Match upstream's `just build release`: build the client and its runtime
@@ -85,7 +177,20 @@ build() {
 }
 
 package() {
+  local voiceprefix="$srcdir/voice-prefix"
+
   cd "$_pkgname"
 
   DESTDIR="$pkgdir" meson install -C build --no-rebuild
+
+  # Voice libraries are private to this package for now. The client's RUNPATH
+  # points at /usr/lib, so no wrapper or extra rpath is needed.
+  install -d "$pkgdir/usr/lib"
+  cp -a "$voiceprefix/lib/"*.so "$pkgdir/usr/lib/"
+
+  # Keep the bundled dependencies' license notices.
+  install -Dm644 "$srcdir/$_davedir/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/libdave-LICENSE"
+  install -Dm644 "$srcdir/$_mlsdir/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/mlspp-LICENSE"
 }
