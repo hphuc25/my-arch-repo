@@ -191,7 +191,10 @@ jobs:
 
           echo "Checking status for $PKG"
           if grep -q 'pkgver()' "$PKG/PKGBUILD"; then
-            sudo -u builder bash -lc "cd '$GITHUB_WORKSPACE/$PKG' && makepkg -od --noprepare --skipinteg" >/dev/null 2>&1 || true
+            # VCS packages need their pkgver refreshed before --packagelist can
+            # decide whether a rebuild is needed. --nodeps keeps this check
+            # independent of dependencies, which paru installs only later.
+            sudo -u builder bash -lc "cd '$GITHUB_WORKSPACE/$PKG' && makepkg -od --noprepare --skipinteg --nodeps" >/dev/null 2>&1 || true
           fi
 
           EXPECTED_PKGS=$(sudo -u builder bash -lc "cd '$GITHUB_WORKSPACE/$PKG' && makepkg --packagelist 2>/dev/null" || true)

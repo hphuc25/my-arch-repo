@@ -6,6 +6,7 @@ deepseek-harness-desktop
 netease-cloud-music-gtk4
 # Local packages
 local:antseed-desktop
+local:cressida-git
 local:ghostline-bin
 local:radmin-vpn-linux
 

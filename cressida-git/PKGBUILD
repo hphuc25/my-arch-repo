@@ -1,0 +1,91 @@
+# Maintainer: hphuc25 <https://github.com/hphuc25/my-arch-repo>
+#
+# Upstream has no tagged releases yet, so this tracks the default branch.
+# pkgver() derives the version from meson.build plus the Git commit count, which
+# lets the release workflow rebuild only when upstream actually changes.
+#
+# Only the `cressida` target is compiled: the upstream test suite is large and
+# the workflow already builds with --nocheck.
+
+pkgname=cressida-git
+_pkgname=cressida
+pkgver=0.1.0.r123.g5ef6821
+pkgrel=1
+pkgdesc='Native Discord desktop client for Linux and Wayland'
+arch=('x86_64')
+url='https://github.com/Ly-sec/Cressida'
+license=('MIT' 'Apache-2.0')
+depends=(
+  'cairo'
+  'curl'
+  'ffmpeg'
+  'fontconfig'
+  'freetype2'
+  'glib2'
+  'harfbuzz'
+  'hicolor-icon-theme'
+  'libglvnd'
+  'libjxl'
+  'libsecret'
+  'libwebp'
+  'libxkbcommon'
+  'librsvg'
+  'md4c'
+  'mpv'
+  'nlohmann-json'
+  'pango'
+  'rlottie'
+  'shared-mime-info'
+  'tomlplusplus'
+  'wayland'
+  'xdg-utils'
+  'zstd'
+)
+makedepends=(
+  'git'
+  'meson'
+  'ninja'
+  'pkgconf'
+  'stb'
+  'wayland-protocols'
+)
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+optdepends=(
+  'noto-fonts-emoji: color emoji fallback font'
+  'gnome-keyring: store credentials in the Secret Service'
+  'kwallet: store credentials in the Secret Service'
+  'xdg-desktop-portal: system color scheme and native file picker'
+  'xdg-desktop-portal-gtk: portal backend for GTK desktops'
+  'xdg-desktop-portal-kde: portal backend for KDE Plasma'
+)
+source=("$_pkgname::git+${url}.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$_pkgname"
+
+  # Keep the upstream Meson project version as the base version.
+  local ver
+  ver=$(sed -n "s/^  version: '\([^']*\)',/\1/p" meson.build)
+  printf '%s.r%s.g%s' "${ver:-0}" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  cd "$_pkgname"
+
+  # arch-meson picks up the repository's x86-64-v3 CFLAGS/LDFLAGS and LTO.
+  arch-meson build \
+    -Dcpp_std=c++23 \
+    -Demoji_font=/usr/share/fonts/noto/NotoColorEmoji.ttf
+
+  # Match upstream's `just build release`: build the client and its runtime
+  # libraries only, not the standalone test binaries.
+  meson compile -C build cressida
+}
+
+package() {
+  cd "$_pkgname"
+
+  DESTDIR="$pkgdir" meson install -C build --no-rebuild
+}
