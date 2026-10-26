@@ -75,8 +75,10 @@ optdepends=(
 # scripts/build-voice-dependencies.sh. Keep both in sync with upstream.
 _mlsrev=1cc50a124a3bc4e143a787ec934280dc70c1034d
 _davev=6396c90aedbb9a6ee117ea9ce1ce9832af6a3375
-_mlsdir="cressida-mlspp-$_mlsrev"
-_davedir="cressida-libdave-$_davev"
+# codeload tarballs extract into <name>-<revision>/, so the source filenames
+# must use the same prefixes or makepkg's extracted directories will differ.
+_mlsdir="mlspp-$_mlsrev"
+_davedir="libdave-$_davev"
 
 source=(
   "$_pkgname::git+${url}.git"
