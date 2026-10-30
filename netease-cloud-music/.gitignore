@@ -1,6 +1,0 @@
-*.pkg.tar.*
-service.html
-*.deb
-/tmp
-/pkg
-/src
