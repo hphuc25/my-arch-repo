@@ -1,0 +1,36 @@
+# Maintainer: Harry Nguyen <duchanhstyle@gmail.com>
+pkgname=meiro-bin
+pkgver=0.5.0
+pkgrel=1
+pkgdesc="Lightweight desktop client for YouTube Music, with a native interface instead of a web page"
+arch=('x86_64')
+url="https://github.com/elianiva/meiro"
+license=('GPL-3.0-only')
+depends=('fuse2' 'gtk3' 'webkit2gtk-4.1' 'libayatana-appindicator')
+provides=('meiro')
+conflicts=('meiro')
+options=('!strip' '!debug')
+source=("$pkgname-$pkgver.AppImage::$url/releases/download/desktop-v$pkgver/Meiro-$pkgver-linux-amd64.AppImage"
+	"LICENSE::$url/raw/desktop-v$pkgver/LICENSE")
+sha256sums=('54fd41c32d6443f2b96dfac81fb34b66e5636d967350ae4e3bd506637696ddf9'
+	'e57f1c320b8cf8798a7d2ff83a6f9e06a33a03585f6e065fea97f1d86db84052')
+
+package() {
+	# The AppImage is shipped as-is: it is a self-contained bundle, so it is
+	# installed as the launcher itself and keeps its own ffmpeg, yt-dlp and
+	# quickjs next to the app.
+	install -Dm755 "$srcdir/$pkgname-$pkgver.AppImage" "$pkgdir/usr/bin/meiro"
+
+	# Pull the launcher entry and icon out of the bundle so Meiro shows up in
+	# the application menu. The entry points at the AppImage's own AppRun, so
+	# it is retargeted at the installed name.
+	rm -rf squashfs-root
+	chmod +x "$srcdir/$pkgname-$pkgver.AppImage"
+	"$srcdir/$pkgname-$pkgver.AppImage" --appimage-extract 'meiro.*' >/dev/null
+	sed 's|^Exec=AppRun$|Exec=meiro|' squashfs-root/meiro.desktop > meiro.desktop
+	install -Dm644 meiro.desktop "$pkgdir/usr/share/applications/meiro.desktop"
+	install -Dm644 squashfs-root/meiro.png "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/meiro.png"
+	rm -rf squashfs-root meiro.desktop
+
+	install -Dm644 "$srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

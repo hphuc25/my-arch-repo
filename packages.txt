@@ -1,13 +1,11 @@
 #####
 # AUR packages
 opennow
-netease-cloud-music
-deepseek-harness-desktop
-netease-cloud-music-gtk4
 rlottie
 # Local packages
 local:antseed-desktop
 local:cressida-git
 local:ghostline-bin
+local:meiro-bin
 local:radmin-vpn-linux
 
