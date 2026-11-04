@@ -8,6 +8,7 @@ pkgbase = xdg-desktop-portal-halley
 	makedepends = cargo
 	makedepends = rust
 	makedepends = pkgconf
+	makedepends = clang
 	depends = pipewire
 	depends = xdg-desktop-portal
 	depends = mesa

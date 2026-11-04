@@ -5,8 +5,8 @@ rlottie
 halley-full
 halley
 halley-lift
-xdg-desktop-portal-halley
 # Local packages
+local:xdg-desktop-portal-halley
 local:antseed-desktop
 local:cressida-git
 local:ghostline-bin
