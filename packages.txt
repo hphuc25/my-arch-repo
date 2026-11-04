@@ -2,6 +2,10 @@
 # AUR packages
 opennow
 rlottie
+halley-full
+halley
+halley-lift
+xdg-desktop-portal-halley
 # Local packages
 local:antseed-desktop
 local:cressida-git
