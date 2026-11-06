@@ -1,4 +1,4 @@
-# Maintainer: Dustin Pilgrim <dustin.pilgrim1997@gmail.com>
+# Maintainer: hphuc25 <https://github.com/hphuc25>
 #
 # Native xdg-desktop-portal backend for the Halley Wayland compositor.
 # Provides the ScreenCast and Screenshot portal interfaces by capturing from

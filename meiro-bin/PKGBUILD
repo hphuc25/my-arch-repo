@@ -1,8 +1,13 @@
-# Maintainer: Harry Nguyen <duchanhstyle@gmail.com>
+# Maintainer: hphuc25 <https://github.com/hphuc25>
 pkgname=meiro-bin
-pkgver=0.5.0
+pkgver=0
 pkgrel=1
 pkgdesc="Lightweight desktop client for YouTube Music, with a native interface instead of a web page"
+
+pkgver() {
+	curl -s "https://api.github.com/repos/elianiva/meiro/releases/latest" \
+		| sed -nE 's/.*"tag_name": "desktop-v([^"]+)".*/\1/p'
+}
 arch=('x86_64')
 url="https://github.com/elianiva/meiro"
 license=('GPL-3.0-only')
@@ -12,8 +17,8 @@ conflicts=('meiro')
 options=('!strip' '!debug')
 source=("$pkgname-$pkgver.AppImage::$url/releases/download/desktop-v$pkgver/Meiro-$pkgver-linux-amd64.AppImage"
 	"LICENSE::$url/raw/desktop-v$pkgver/LICENSE")
-sha256sums=('54fd41c32d6443f2b96dfac81fb34b66e5636d967350ae4e3bd506637696ddf9'
-	'e57f1c320b8cf8798a7d2ff83a6f9e06a33a03585f6e065fea97f1d86db84052')
+sha256sums=('SKIP'
+	'SKIP')
 
 package() {
 	# The AppImage is shipped as-is: it is a self-contained bundle, so it is

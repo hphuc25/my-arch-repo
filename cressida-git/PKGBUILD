@@ -1,4 +1,4 @@
-# Maintainer: hphuc25 <https://github.com/hphuc25/my-arch-repo>
+# Maintainer: hphuc25 <https://github.com/hphuc25>
 #
 # Upstream has no tagged releases yet, so this tracks the default branch.
 # pkgver() derives the version from meson.build plus the Git commit count, which

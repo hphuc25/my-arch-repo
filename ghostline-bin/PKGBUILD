@@ -1,4 +1,4 @@
-# Maintainer: Harry Nguyen <duchanhstyle@gmail.com>
+# Maintainer: hphuc25 <https://github.com/hphuc25>
 # Rendered by build/linux/aur/render.sh: @…@ values are filled at release.
 pkgname=ghostline-bin
 pkgver=@PKGVER@
