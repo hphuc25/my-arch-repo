@@ -28,6 +28,7 @@ Both are `local:` entries but differ in how they're built:
 ## Version quirks
 
 - Use `pkgver()` for dynamic versioning. When you define `pkgver()`, **keep a `pkgver=0` placeholder line** — makepkg's lint fails with "pkgver is not allowed to be empty" if the variable is unset, and `pkgver()` only runs during a real build (not `--printsrcinfo`, which will still show `0`).
+- **Dynamic version + source URL containing the version is a deadlock in makepkg:** it downloads sources (`download_sources`) *before* running `pkgver()`, so a placeholder like `pkgver=0` makes the URL `.../v0/...` and 404s before `pkgver()` ever runs. Workaround (used in `meiro-bin`): compute the real version in a top-level assignment `_pkgver=$(get_new_ver)` (runs immediately at source time), use `$_pkgver` in the `source=` URL and everywhere in `package()` that references the downloaded file, and make `pkgver()` just `echo "$_pkgver"`. Keep `pkgver=0` as the lint placeholder. Using `$_pkgver` consistently (instead of `$pkgver`) also makes the build succeed even when `pkgver()` can't write the file back (e.g. read-only PKGBUILD).
 - For dynamic sources that can't be checksummed, use `sha256sums=('SKIP' ...)`.
 - Local packages must all carry maintainer `hphuc25 <https://github.com/hphuc25>` (AUR packages inherit their upstream maintainer and should be left alone).
 

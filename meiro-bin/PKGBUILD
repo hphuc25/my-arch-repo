@@ -4,10 +4,14 @@ pkgver=0
 pkgrel=1
 pkgdesc="Lightweight desktop client for YouTube Music, with a native interface instead of a web page"
 
-pkgver() {
+# Runs at source time, before makepkg downloads anything, so the URL already
+# carries the real version (makepkg downloads sources before running pkgver()).
+get_new_ver() {
 	curl -s "https://api.github.com/repos/elianiva/meiro/releases/latest" \
 		| sed -nE 's/.*"tag_name": "desktop-v([^"]+)".*/\1/p'
 }
+_pkgver=$(get_new_ver)
+
 arch=('x86_64')
 url="https://github.com/elianiva/meiro"
 license=('GPL-3.0-only')
@@ -15,8 +19,12 @@ depends=('fuse2' 'gtk3' 'webkit2gtk-4.1' 'libayatana-appindicator')
 provides=('meiro')
 conflicts=('meiro')
 options=('!strip' '!debug')
-source=("$pkgname-$pkgver.AppImage::$url/releases/download/desktop-v$pkgver/Meiro-$pkgver-linux-amd64.AppImage"
-	"LICENSE::$url/raw/desktop-v$pkgver/LICENSE")
+source=("$pkgname-$_pkgver.AppImage::$url/releases/download/desktop-v$_pkgver/Meiro-$_pkgver-linux-amd64.AppImage"
+	"LICENSE::$url/raw/desktop-v$_pkgver/LICENSE")
+
+pkgver() {
+	echo "$_pkgver"
+}
 sha256sums=('SKIP'
 	'SKIP')
 
@@ -24,14 +32,14 @@ package() {
 	# The AppImage is shipped as-is: it is a self-contained bundle, so it is
 	# installed as the launcher itself and keeps its own ffmpeg, yt-dlp and
 	# quickjs next to the app.
-	install -Dm755 "$srcdir/$pkgname-$pkgver.AppImage" "$pkgdir/usr/bin/meiro"
+	install -Dm755 "$srcdir/$pkgname-$_pkgver.AppImage" "$pkgdir/usr/bin/meiro"
 
 	# Pull the launcher entry and icon out of the bundle so Meiro shows up in
 	# the application menu. The entry points at the AppImage's own AppRun, so
 	# it is retargeted at the installed name.
 	rm -rf squashfs-root
-	chmod +x "$srcdir/$pkgname-$pkgver.AppImage"
-	"$srcdir/$pkgname-$pkgver.AppImage" --appimage-extract 'meiro.*' >/dev/null
+	chmod +x "$srcdir/$pkgname-$_pkgver.AppImage"
+	"$srcdir/$pkgname-$_pkgver.AppImage" --appimage-extract 'meiro.*' >/dev/null
 	sed 's|^Exec=AppRun$|Exec=meiro|' squashfs-root/meiro.desktop > meiro.desktop
 	install -Dm644 meiro.desktop "$pkgdir/usr/share/applications/meiro.desktop"
 	install -Dm644 squashfs-root/meiro.png "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/meiro.png"
