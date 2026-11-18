@@ -1,0 +1,19 @@
+# udev only reads rules at daemon start, so reload them after (un)install.
+_udev_reload() {
+  if [ -x /usr/bin/udevadm ]; then
+    /usr/bin/udevadm control --reload-rules || true
+    /usr/bin/udevadm trigger --subsystem-match=hidraw || true
+  fi
+}
+
+post_install() {
+  _udev_reload
+}
+
+post_upgrade() {
+  _udev_reload
+}
+
+post_remove() {
+  _udev_reload
+}

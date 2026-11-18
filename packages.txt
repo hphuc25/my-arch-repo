@@ -12,4 +12,5 @@ local:cressida-git
 local:ghostline-bin
 local:meiro-bin
 local:radmin-vpn-linux
+local:Wireless-Device-Battery-Monitor
 

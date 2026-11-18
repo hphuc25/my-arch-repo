@@ -1,0 +1,69 @@
+# Maintainer: hphuc25 <https://github.com/hphuc25>
+#
+# Tray app showing the battery level of wireless mice, keyboards and headsets,
+# built from source (GTK4/Cairo, talks to hidraw directly).
+#
+# Version tracking: the source is a git clone of upstream's default branch, so
+# every build fetches whatever is newest on GitHub. pkgver() combines the newest
+# reachable release tag with the commit distance and hash (e.g.
+# 1.0.7.r3.g47ecc14), which changes as soon as upstream pushes a commit or a new
+# tag. The release workflow refreshes pkgver before deciding to rebuild, so a
+# new upstream version is picked up automatically and never needs a manual bump.
+
+pkgname=wireless-battery-git
+pkgver=1.0.7.r3.g47ecc14
+pkgrel=1
+pkgdesc='Tray icon showing the battery level of wireless mice, keyboards and headsets (GTK4)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/krisgfx9/Wireless-Device-Battery-Monitor'
+license=('GPL-3.0-or-later')
+depends=('cairo' 'gcc-libs' 'glib2' 'gtk4')
+makedepends=('git' 'pkgconf')
+provides=('wireless-battery')
+conflicts=('wireless-battery')
+install="$pkgname.install"
+source=("$pkgname::git+${url}.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+
+  # Upstream tags releases as vX.Y.Z; describe gives vX.Y.Z-<commits>-g<hash>
+  # on a branch and vX.Y.Z on the tag itself.
+  local tag
+  if tag=$(git describe --long --tags --abbrev=7 2>/dev/null); then
+    printf '%s' "$tag" | sed -E 's/^v//; s/-([0-9]+)-g([0-9a-f]+)$/.r\1.g\2/'
+  else
+    printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  fi
+}
+
+build() {
+  cd "$pkgname"
+
+  # The Makefile uses CXXFLAGS ?= ..., so makepkg's flags must be passed
+  # explicitly; they carry the Arch hardening flags but not the C++ standard.
+  make -f linux/Makefile.linux \
+    CXX=g++ \
+    CXXFLAGS="$CXXFLAGS -std=c++17 -Wno-missing-field-initializers"
+}
+
+check() {
+  cd "$pkgname"
+  # HID report-descriptor parser test (no hardware needed).
+  make -f linux/Makefile.linux test
+}
+
+package() {
+  cd "$pkgname"
+
+  install -Dm755 wireless-battery "$pkgdir/usr/bin/wireless-battery"
+  install -Dm644 linux/wireless-battery.desktop \
+    "$pkgdir/usr/share/applications/wireless-battery.desktop"
+  install -Dm644 linux/wireless-battery.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/wireless-battery.svg"
+  # Lets the active desktop session read hidraw battery reports without root.
+  install -Dm644 linux/99-wireless-battery.rules \
+    "$pkgdir/usr/lib/udev/rules.d/99-wireless-battery.rules"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
