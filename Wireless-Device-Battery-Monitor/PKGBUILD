@@ -10,8 +10,8 @@
 # tag. The release workflow refreshes pkgver before deciding to rebuild, so a
 # new upstream version is picked up automatically and never needs a manual bump.
 
-pkgname=wireless-battery-git
-pkgver=1.0.7.r3.g47ecc14
+pkgname=wireless-device-battery-monitor-git
+pkgver=1.0.7.r71.g132a40d
 pkgrel=1
 pkgdesc='Tray icon showing the battery level of wireless mice, keyboards and headsets (GTK4)'
 arch=('x86_64' 'aarch64')
