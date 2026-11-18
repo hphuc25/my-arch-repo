@@ -5,6 +5,7 @@ halley-full
 halley
 halley-lift
 xdg-desktop-portal-halley
+luciole-git
 # Local packages
 local:cressida-git
 local:ghostline-bin
